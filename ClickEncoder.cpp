@@ -24,6 +24,7 @@
 #define ENC_ACCEL_TOP      3072   // max. acceleration: *12 (val >> 8)
 #define ENC_ACCEL_INC        25
 #define ENC_ACCEL_DEC         2
+#define ENC_ACCEL_REV_RESET       // reset acceleration when rotation is inverted
 
 // ----------------------------------------------------------------------------
 
@@ -69,6 +70,9 @@ ClickEncoder::ClickEncoder(uint8_t A, uint8_t B, uint8_t BTN, uint8_t stepsPerNo
 void ClickEncoder::service(void)
 {
   bool moved = false;
+#ifdef ENC_ACCEL_REV_RESET
+  static uint8_t lastDirection = 0;
+#endif
   unsigned long now = millis();
 
   if (accelerationEnabled) { // decelerate every tick
@@ -108,6 +112,12 @@ void ClickEncoder::service(void)
   int8_t diff = last - curr;
 
   if (diff & 1) {            // bit 0 = step
+#ifdef ENC_ACCEL_REV_RESET
+    if (lastDirection != (diff & 2)) {
+        acceleration = 0;
+    }
+    lastDirection = diff & 2;
+#endif
     last = curr;
     delta += (diff & 2) - 1; // bit 1 = direction (+/-)
     moved = true;    
